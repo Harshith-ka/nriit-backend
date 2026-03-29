@@ -1,0 +1,90 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String   @id @default(uuid())
+  name            String
+  email           String   @unique
+  password        String
+  skills          String   @default("[]") // JSON string
+  goals           String   @default("[]") // JSON string
+  interests       String   @default("[]") // JSON string
+  bio             String?
+  portfolio_links String   @default("[]") // JSON string
+  previousProjects String  @default("[]") // JSON string of { title, repoLink }
+  createdAt       DateTime @default(now())
+  
+  sentMatches     Match[]  @relation("SentMatches")
+  receivedMatches Match[]  @relation("ReceivedMatches")
+  posts           Post[]
+  messagesSent    Message[] @relation("SentMessages")
+  messagesRcvd    Message[] @relation("ReceivedMessages")
+  
+  projectsOwned   Project[]
+  applications    JobApplication[]
+}
+
+model Match {
+  id        String   @id @default(uuid())
+  user1Id   String
+  user2Id   String
+  status    String   // "PENDING", "ACCEPTED", "REJECTED"
+  createdAt DateTime @default(now())
+
+  user1     User     @relation("SentMatches", fields: [user1Id], references: [id])
+  user2     User     @relation("ReceivedMatches", fields: [user2Id], references: [id])
+
+  @@unique([user1Id, user2Id])
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  userId    String
+  content   String
+  tags      String   @default("[]") // JSON string
+  likes     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  senderId  String
+  receiverId String
+  content   String
+  createdAt DateTime @default(now())
+
+  sender    User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver  User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  openRoles   String   @default("[]") // JSON String ["Frontend", "Backend"]
+  ownerId     String
+  createdAt   DateTime @default(now())
+
+  owner       User     @relation(fields: [ownerId], references: [id])
+  applications JobApplication[]
+}
+
+model JobApplication {
+  id          String   @id @default(uuid())
+  projectId   String
+  userId      String
+  role        String
+  status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  createdAt   DateTime @default(now())
+
+  project     Project  @relation(fields: [projectId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+}
